@@ -96,9 +96,3 @@ std::string BuiltinProcValue::toString() {
 ValuePtr BuiltinProcValue::Activatefunc(const std::vector<ValuePtr>& args) {
     return func(args);
 }
-
-LambdaValue::LambdaValue(std::vector<std::string> a, std::vector<ValuePtr> b) : params{ a }, body{ b } {}
-
-std::string LambdaValue::toString() {
-    return "#<procedure>";
-}

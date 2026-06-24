@@ -1,7 +1,6 @@
 #ifndef VALUE_H
 #define VALUE_H
 
-// 你的代码
 #include "./error.h"
 
 #include <string>
@@ -9,11 +8,11 @@
 #include <vector>
 #include <optional>
 
-
-
 class Value;
 
 using ValuePtr = std::shared_ptr<Value>;
+
+class EvalEnv;
 
 class Value {
 public:
@@ -83,8 +82,12 @@ class LambdaValue : public Value {
 private:
     std::vector<std::string> params;
     std::vector<ValuePtr> body;
+    EvalEnv* env;
 public:
     LambdaValue(std::vector<std::string>, std::vector<ValuePtr>);
     std::string toString();
+    std::vector<std::string> getParams() const { return params; }
+    std::vector<ValuePtr> getBody() const { return body; }
+    EvalEnv* getEnv() const { return env; }
 };
 #endif

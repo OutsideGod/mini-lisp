@@ -13,6 +13,9 @@
 class EvalEnv {
 public:
     EvalEnv();
+    EvalEnv(EvalEnv* parent);
+    EvalEnv* parent;
+    static thread_local EvalEnv* current_env;
     std::unordered_map<std::string, ValuePtr> symlist;
     ValuePtr eval(ValuePtr expr);
     std::vector<ValuePtr> evalList(std::vector<ValuePtr>);
