@@ -1,0 +1,5 @@
+1. 避免拷贝浪费计算资源，降低运行速度。string&不可行，因为tokenize函数的形参input属于临时变量，如果input类型为string&则不能绑定到类型为string的line上
+2.unique_ptr用完后不需要手动释放内存，如果用Token*还需要写手动释放内存
+3.首先类型为TokenPtr的token被解引用，成为类别为Token的实例，然后触发运算符重载（os对token）被输出出来
+4.如果发生错误，nexttoken函数会先检测到，然后抛出错误，main函数while循环里接收到错误信息并打印出来
+5.在后续也许用得到pop_front之类的操作，deque进行该操作复杂度远低于vector
