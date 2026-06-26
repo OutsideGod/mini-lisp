@@ -1,78 +1,104 @@
 #include "builtins.h"
+
 #include <iostream>
 
 ValuePtr add(const std::vector<ValuePtr>& params) {
     auto result = 0.0;
     for (const auto& i : params) {
         if (!i->isNumber()) {
-            throw LispError("Cannot add a non-numeric value.");
+            throw LispError("LispError: " + i->toString() + " is not number");
         }
         result += i->asNumber();
     }
     return std::make_shared<NumericValue>(result);
 }
 
-ValuePtr sub(const std::vector<ValuePtr>& params) {
-    if (params.empty()) {
-        throw LispError("Too few arguments for subtraction.");
+ValuePtr minus(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size < 1) {
+        throw LispError::tooFewOperands(size, 1);
     }
-    if (params.size() == 1) {
-        if (!params[0]->isNumber()) {
-            throw LispError("Cannot negate a non-numeric value.");
-        }
-        return std::make_shared<NumericValue>(-params[0]->asNumber());
+    if (size > 2) {
+        throw LispError::tooManyOperands(size, 2);
     }
     if (!params[0]->isNumber()) {
-        throw LispError("Cannot subtract a non-numeric value.");
+        throw LispError("LispError: " + params[0]->toString() + " is not number");
     }
-    auto result = params[0]->asNumber();
-    for (size_t i = 1; i < params.size(); ++i) {
-        if (!params[i]->isNumber()) {
-            throw LispError("Cannot subtract a non-numeric value.");
-        }
-        result -= params[i]->asNumber();
+    if (!params[1]->isNumber()) {
+        throw LispError("LispError: " + params[1]->toString() + " is not number");
     }
-    return std::make_shared<NumericValue>(result);
+    return std::make_shared<NumericValue>(params[0]->asNumber() - params[1]->asNumber());
 }
 
-ValuePtr mul(const std::vector<ValuePtr>& params) {
+ValuePtr multiply(const std::vector<ValuePtr>& params) {
     auto result = 1.0;
     for (const auto& i : params) {
         if (!i->isNumber()) {
-            throw LispError("Cannot multiply a non-numeric value.");
+            throw LispError("LispError: " + i->toString() + " is not number");
         }
         result *= i->asNumber();
     }
     return std::make_shared<NumericValue>(result);
 }
 
-ValuePtr gt(const std::vector<ValuePtr>& params) {
-    if (params.size() != 2) {
-        throw LispError("Greater than requires exactly 2 arguments.");
+ValuePtr divide(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size < 1) {
+        throw LispError::tooFewOperands(size, 1);
     }
-    if (!params[0]->isNumber() || !params[1]->isNumber()) {
-        throw LispError("Cannot compare non-numeric values.");
+    if (size > 2) {
+        throw LispError::tooManyOperands(size, 2);
     }
-    return std::make_shared<BooleanValue>(params[0]->asNumber() > params[1]->asNumber());
+    if (!params[0]->isNumber()) {
+        throw LispError("LispError: " + params[0]->toString() + " is not number");
+    }
+    if (!params[1]->isNumber()) {
+        throw LispError("LispError: " + params[1]->toString() + " is not number");
+    }
+    return std::make_shared<NumericValue>(params[0]->asNumber() / params[1]->asNumber());
 }
 
-ValuePtr lt(const std::vector<ValuePtr>& params) {
-    if (params.size() != 2) {
-        throw LispError("Less than requires exactly 2 arguments.");
+ValuePtr greater(const std::vector<ValuePtr>& params) {
+    auto size = params.size();
+    if (size < 2){
+        throw LispError::tooFewOperands(size, 2);
     }
-    if (!params[0]->isNumber() || !params[1]->isNumber()) {
-        throw LispError("Cannot compare non-numeric values.");
+    if (!params[0]->isNumber()) {
+        throw LispError("LispError: " + params[0]->toString() + " is not number");
     }
-    return std::make_shared<BooleanValue>(params[0]->asNumber() < params[1]->asNumber());
+    for (int i = 1; i < size; i++) {
+        if (!params[i]->isNumber()) {
+            throw LispError("LispError: " + params[i]->toString() + " is not number");
+        }
+        if (params[i-1]->asNumber() <= params[i]->asNumber()) {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    return std::make_shared<BooleanValue>(true);
+}
+
+ValuePtr smaller(const std::vector<ValuePtr>& params) {
+    auto size = params.size();
+    if (size < 2) {
+        throw LispError::tooFewOperands(size, 2);
+    }
+    if (!params[0]->isNumber()) {
+        throw LispError("LispError: " + params[0]->toString() + " is not number");
+    }
+    for (int i = 1; i < size; i++) {
+        if (!params[i]->isNumber()) {
+            throw LispError("LispError: " + params[i]->toString() + " is not number");
+        }
+        if (params[i - 1]->asNumber() >= params[i]->asNumber()) {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    return std::make_shared<BooleanValue>(true);
 }
 
 ValuePtr print(const std::vector<ValuePtr>& params) {
-    if (params.empty()) {
-        std::cout << std::endl;
-        return std::make_shared<NilValue>();
-    }
     std::cout << params[0]->toString();
-    for (size_t i = 1; i < params.size(); i++) {
+    for (int i = 1; i < params.size(); i++) {
         std::cout << " " << params[i]->toString();
     }
     std::cout << std::endl;
@@ -80,15 +106,17 @@ ValuePtr print(const std::vector<ValuePtr>& params) {
 }
 
 const std::unordered_map<std::string, ValuePtr> Builtins::registry = {
-    { "+", std::make_shared<BuiltinProcValue>(&add) },
-    { "-", std::make_shared<BuiltinProcValue>(&sub) },
-    { "*", std::make_shared<BuiltinProcValue>(&mul) },
-    { ">", std::make_shared<BuiltinProcValue>(&gt) },
-    { "<", std::make_shared<BuiltinProcValue>(&lt) },
-    { "print", std::make_shared<BuiltinProcValue>(&print) }
+    {"+", std::make_shared<BuiltinProcValue>(&add)},
+    {"-", std::make_shared<BuiltinProcValue>(&minus)},
+    {"*", std::make_shared<BuiltinProcValue>(&multiply)},
+    {"/", std::make_shared<BuiltinProcValue>(&divide)},
+    {">", std::make_shared<BuiltinProcValue>(&greater)},
+    {"<", std::make_shared<BuiltinProcValue>(&smaller)},
+    {"print", std::make_shared<BuiltinProcValue>(&print)}
 };
 
-void Builtins::builtins_register(std::unordered_map<std::string, ValuePtr>& symlist) {
+void Builtins::builtins_register(
+    std::unordered_map<std::string, ValuePtr>& symlist) {
     for (const auto& [name, func_ptr] : registry) {
         symlist[name] = func_ptr;
     }

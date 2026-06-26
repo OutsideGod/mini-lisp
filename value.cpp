@@ -1,6 +1,8 @@
-#include "./value.h"
-#include <memory>
+#include "value.h"
+#include "eval_env.h"
+
 #include <iomanip>
+#include <memory>
 #include <sstream>
 
 std::optional<std::string> Value::asSymbol() {
@@ -13,13 +15,19 @@ std::optional<std::string> Value::asSymbol() {
 bool Value::isNumber() {
     if (typeid(*this) == typeid(NumericValue)) {
         return true;
-    }
-    else {
+    } else {
         return false;
     }
 }
-double Value::asNumber() { return 0; }
-std::vector<ValuePtr> Value::toVector() { return {}; }
+double Value::asNumber() {
+    return 0;
+}
+bool Value::asBool() {
+    return true;
+}
+std::vector<ValuePtr> Value::toVector() {
+    return {};
+}
 ValuePtr Value::Activatefunc(const std::vector<ValuePtr>& args) {
     throw LispError("Attempt to call a non-procedure value");
 }
@@ -28,21 +36,24 @@ BooleanValue::BooleanValue(bool value) : value{value} {}
 NumericValue::NumericValue(double value) : value{value} {}
 StringValue::StringValue(std::string value) : value{std::string(value)} {}
 SymbolValue::SymbolValue(std::string value) : value{std::string(value)} {}
-PairValue::PairValue(std::shared_ptr<Value> a, std::shared_ptr<Value> b) : value1{a}, value2{b} {}
+PairValue::PairValue(std::shared_ptr<Value> a, std::shared_ptr<Value> b)
+    : value1{a}, value2{b} {}
+
+bool BooleanValue::asBool() {
+    return value;
+}
 
 std::string BooleanValue::toString() {
     if (value) {
         return "#t";
-    } 
-    else {
+    } else {
         return "#f";
     }
 }
 std::string NumericValue::toString() {
     if (std::floor(value) == value) {
         return std::to_string(int(value));
-    } 
-    else {
+    } else {
         return std::to_string(double(value));
     }
 }
@@ -64,13 +75,14 @@ std::string PairValue::toString() {
     std::string result = "(";
     result += value1->toString();
     PairValue* value = this;
-    while (auto next_value = std::dynamic_pointer_cast<PairValue>(value->value2)) {
+    while (auto next_value =
+               std::dynamic_pointer_cast<PairValue>(value->value2)) {
         result += " " + next_value->value1->toString();
         value = next_value.get();
     }
     if (typeid(*(value->value2)) != typeid(NilValue)) {
         result += " . " + value->value2->toString();
-    } 
+    }
     result += ")";
     return result;
 }
@@ -88,6 +100,10 @@ std::vector<ValuePtr> PairValue::toVector() {
     return result;
 }
 
+ValuePtr PairValue::getCdr(){
+    return this->value2;
+}
+
 BuiltinProcValue::BuiltinProcValue(BuiltinFuncType* a) : func{a} {}
 std::string BuiltinProcValue::toString() {
     return "#<procedure>";
@@ -95,4 +111,19 @@ std::string BuiltinProcValue::toString() {
 
 ValuePtr BuiltinProcValue::Activatefunc(const std::vector<ValuePtr>& args) {
     return func(args);
+}
+
+LambdaValue::LambdaValue(std::vector<std::string> a, std::vector<ValuePtr> b, const std::shared_ptr<EvalEnv>& c) : params{ a }, body{ b }, env { c } {}
+
+std::string LambdaValue::toString() {
+    return "#<procedure>";
+}
+
+ValuePtr LambdaValue::apply(const std::vector<ValuePtr>& args) {
+    std::shared_ptr<EvalEnv> child_env = env->createChild(params, args);
+    ValuePtr result = std::make_shared<NilValue>();
+    for (auto element : body) {
+        result = child_env->eval(element);
+    }
+    return result;
 }

@@ -10,5 +10,4 @@ public:
     static void builtins_register(std::unordered_map<std::string, ValuePtr> &);
 };
 
-
 #endif

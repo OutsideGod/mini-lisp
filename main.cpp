@@ -7,12 +7,12 @@
 #include "rjsj_test.hpp"
 #include "eval_env.h"
 struct TestCtx {
-    EvalEnv env;
+    std::shared_ptr<EvalEnv> env = std::make_shared<EvalEnv>();
     std::string eval(std::string input) {
         auto tokens = Tokenizer::tokenize(input);
         Parser parser(std::move(tokens));
         auto value = parser.parse();
-        auto result = env.eval(std::move(value));
+        auto result = env->eval(std::move(value));
         return result->toString();
     }
 };
@@ -21,7 +21,7 @@ int main() {
     EvalEnv env;
     while (true) {
         try {
-            std::cout << ">>> " ;
+            std::cout << ">>> ";
             std::string line;
             std::getline(std::cin, line);
             if (std::cin.eof()) {
@@ -37,7 +37,6 @@ int main() {
             auto value = parser.parse();
             std::cout << value->toString() << std::endl;  // 输出外部表示
             */
-
             auto tokens = Tokenizer::tokenize(line);
             Parser parser(std::move(tokens));
             auto value = parser.parse();
