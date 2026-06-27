@@ -1,4 +1,5 @@
 #include "builtins.h"
+#include "eval_env.h"
 
 #include <iostream>
 
@@ -97,9 +98,36 @@ ValuePtr smaller(const std::vector<ValuePtr>& params) {
 }
 
 ValuePtr print(const std::vector<ValuePtr>& params) {
+    auto size = params.size();
+    if (size == 0) {
+        return std::make_shared<NilValue>();
+    }
     std::cout << params[0]->toString();
-    for (int i = 1; i < params.size(); i++) {
+    for (int i = 1; i < size; i++) {
         std::cout << " " << params[i]->toString();
+    }
+    std::cout << std::endl;
+    return std::make_shared<NilValue>();
+}
+
+ValuePtr display(const std::vector<ValuePtr>& params) {
+    auto size = params.size();
+    if (size == 0) {
+        return std::make_shared<NilValue>();
+    }
+    if (typeid(*params[0]) == typeid(StringValue)) {
+        std::cout << params[0]->toString().substr(1, params[0]->toString().size() - 2);
+    }
+    else {
+        std::cout << params[0]->toString();
+    }
+    for (int i = 1; i < size; i++) {
+        if (typeid(*params[i]) == typeid(StringValue)) {
+            std::cout << " " << params[i]->toString().substr(1, params[i]->toString().size() - 2);
+        }
+        else {
+            std::cout << " " << params[i]->toString();
+        }
     }
     std::cout << std::endl;
     return std::make_shared<NilValue>();
@@ -112,12 +140,37 @@ const std::unordered_map<std::string, ValuePtr> Builtins::registry = {
     {"/", std::make_shared<BuiltinProcValue>(&divide)},
     {">", std::make_shared<BuiltinProcValue>(&greater)},
     {"<", std::make_shared<BuiltinProcValue>(&smaller)},
-    {"print", std::make_shared<BuiltinProcValue>(&print)}
+    {"print", std::make_shared<BuiltinProcValue>(&print)},
+    {"display", std::make_shared<BuiltinProcValue>(&display)}
 };
 
-void Builtins::builtins_register(
-    std::unordered_map<std::string, ValuePtr>& symlist) {
-    for (const auto& [name, func_ptr] : registry) {
-        symlist[name] = func_ptr;
-    }
+BuiltinFuncType Builtins::makeEval(std::shared_ptr<EvalEnv> env) {
+    return [env](const std::vector<ValuePtr>& params) -> ValuePtr {
+        auto size = params.size();
+        if (size < 1) {
+            throw LispError::tooFewOperands(size, 1);
+        }
+        if (size > 1) {
+            throw LispError::tooManyOperands(size, 1);
+        }
+        return env->eval(params[0]);
+        };
+}
+
+BuiltinFuncType Builtins::makeApply(std::shared_ptr<EvalEnv> env) {
+    return [env](const std::vector<ValuePtr>& params) -> ValuePtr {
+        auto size = params.size();
+        if (size < 2) {
+            throw LispError::tooFewOperands(size, 2);
+        }
+        if (size > 2) {
+            throw LispError::tooManyOperands(size, 2);
+        }
+        if (typeid(*params[1]) != typeid(PairValue) && typeid(*params[1]) != typeid(NilValue)) {
+            throw LispError("LispError: Malformed list: expected pair or nil, got " + params[1]->toString());
+        }
+        ValuePtr proc = env->eval(params[0]);
+        std::vector<ValuePtr> listArgs = params[1]->toVector();
+        return env->apply(proc, listArgs);
+        };
 }

@@ -2,6 +2,7 @@
 #define VALUE_H
 
 // 你的代码
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -26,7 +27,7 @@ public:
     virtual ~Value() = default;
 };
 
-using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&);
+using BuiltinFuncType = std::function<ValuePtr(const std::vector<ValuePtr>&)>;
 
 class BooleanValue : public Value {
 public:
@@ -68,10 +69,9 @@ public:
     ValuePtr getCdr();
 };
 class BuiltinProcValue : public Value {
-    BuiltinFuncType* func;
-
+    BuiltinFuncType func;
 public:
-    BuiltinProcValue(BuiltinFuncType* a);
+    BuiltinProcValue(BuiltinFuncType);
     std::string toString();
     ValuePtr Activatefunc(const std::vector<ValuePtr>&);
 };

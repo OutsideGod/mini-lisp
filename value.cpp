@@ -104,7 +104,7 @@ ValuePtr PairValue::getCdr(){
     return this->value2;
 }
 
-BuiltinProcValue::BuiltinProcValue(BuiltinFuncType* a) : func{a} {}
+BuiltinProcValue::BuiltinProcValue(BuiltinFuncType a) : func{std::move(a)} {}
 std::string BuiltinProcValue::toString() {
     return "#<procedure>";
 }

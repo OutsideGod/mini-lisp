@@ -1,12 +1,11 @@
-#include "./eval_env.h"
-
-#include "./error.h"
+#include "eval_env.h"
+#include "builtins.h"
+#include "error.h"
 
 using namespace std::literals;
 
 EvalEnv::EvalEnv(std::shared_ptr<EvalEnv> a) {
     parent = a;
-    Builtins::builtins_register(symlist);
 }
 
 std::vector<ValuePtr> EvalEnv::evalList(std::vector<ValuePtr> v) {
@@ -14,6 +13,15 @@ std::vector<ValuePtr> EvalEnv::evalList(std::vector<ValuePtr> v) {
     std::ranges::transform(v, std::back_inserter(result),
                            [this](ValuePtr v) { return this->eval(v); });
     return result;
+}
+
+void EvalEnv::env_register() {
+    for (const auto& [name, value] : *Builtins::get_registry()){
+        symlist[name] = value;
+    }
+    auto self = shared_from_this();
+    symlist["eval"] = std::make_shared<BuiltinProcValue>(Builtins::makeEval(self));
+    symlist["apply"] = std::make_shared<BuiltinProcValue>(Builtins::makeApply(self));
 }
 
 ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr> args) {
@@ -24,7 +32,7 @@ ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr> args) {
         return lambda->apply(args);
     }
     else {
-        throw LispError("Unimplemented");
+        throw LispError("LispError: Not a procedure " + proc->toString());
     }
 }
 
@@ -47,8 +55,15 @@ void EvalEnv::defineBinding(std::string a, ValuePtr b) {
     symlist[a] = eval(b);
 }
 
+std::shared_ptr<EvalEnv> EvalEnv::createGlobal() {
+    std::shared_ptr<EvalEnv> global = std::make_shared<EvalEnv>();
+    global->env_register();
+    return global;
+}
+
 std::shared_ptr<EvalEnv> EvalEnv::createChild(const std::vector<std::string>& params, const std::vector<ValuePtr>& args) {
     auto child = std::make_shared<EvalEnv>(shared_from_this());
+    child->env_register();
     if (params.size() != args.size()) {
         throw LispError("LispError: Procedure expected " + std::to_string(params.size()) + " parameters, got " + std::to_string(args.size()));
     }

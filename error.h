@@ -12,10 +12,10 @@ class LispError : public std::runtime_error {
 public:
     using runtime_error::runtime_error;
     static LispError tooManyOperands(int current, int goal) {
-        return LispError("LispError: Too many operands: " + std::to_string(current) + " > " + std::to_string(current));
+        return LispError("LispError: Too many operands: " + std::to_string(current) + " > " + std::to_string(goal));
     }
     static LispError tooFewOperands(int current, int goal) {
-        return LispError("LispError: Too few operands: " + std::to_string(current) + " < " + std::to_string(current));
+        return LispError("LispError: Too few operands: " + std::to_string(current) + " < " + std::to_string(goal));
     }
     template <typename T>
     static LispError unexpectedElement(const std::string& expected, const std::string& in, T& found) {
