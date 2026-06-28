@@ -86,5 +86,6 @@ public:
     LambdaValue(std::vector<std::string>, std::vector<ValuePtr>, const std::shared_ptr<EvalEnv>&);
     std::string toString();
     ValuePtr apply(const std::vector<ValuePtr>&);
+    ValuePtr Activatefunc(const std::vector<ValuePtr>& args);
 };
 #endif

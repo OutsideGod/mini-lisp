@@ -17,7 +17,7 @@ ValuePtr Parser::parseTails() {
             tokendeque.pop_front();
         } 
         else {
-            throw SyntaxError("SyntaxError");
+            throw SyntaxError("SyntaxError: Expected exactly one element after .");
         }
         return std::make_shared<PairValue>(car, cdr);
     } else {
@@ -66,8 +66,14 @@ ValuePtr Parser::parse() {
             std::make_shared<PairValue>(this->parse(),
                                         std::make_shared<NilValue>()));
     }
+    else if (token->getType() == TokenType::RIGHT_PAREN) {
+        throw SyntaxError("SyntaxError: Unexpected token (RIGHT_PAREN)");
+    }
+    else if (token->getType() == TokenType::DOT) {
+        throw SyntaxError("SyntaxError: Unexpected token (DOT)");
+    }
     else {
-        throw SyntaxError("Unimplemented");
+        throw SyntaxError("SyntaxError: Unexpected token");
     }
 }
 

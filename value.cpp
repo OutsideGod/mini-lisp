@@ -134,3 +134,7 @@ ValuePtr LambdaValue::apply(const std::vector<ValuePtr>& args) {
     }
     return result;
 }
+
+ValuePtr LambdaValue::Activatefunc(const std::vector<ValuePtr>& args) {
+    return apply(args);
+}

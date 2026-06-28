@@ -68,7 +68,7 @@ std::shared_ptr<EvalEnv> EvalEnv::createChild(const std::vector<std::string>& pa
         throw LispError("LispError: Procedure expected " + std::to_string(params.size()) + " parameters, got " + std::to_string(args.size()));
     }
     for (int i = 0; i < params.size(); i++) {
-        child->defineBinding(params[i], args[i]);
+        child->symlist[params[i]] = args[i];
     }
     return child;
 }

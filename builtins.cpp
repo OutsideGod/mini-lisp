@@ -421,6 +421,57 @@ ValuePtr display(const std::vector<ValuePtr>& params) {
     return std::make_shared<NilValue>();
 }
 
+ValuePtr newline(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size != 0) {
+        throw LispError::tooManyOperands(size, 0);
+    }
+    std::cout << std::endl;
+    return std::make_shared<NilValue>();
+}
+
+ValuePtr displayln(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size < 1) {
+        throw LispError::tooFewOperands(size, 1);
+    }
+    if (size > 1) {
+        throw LispError::tooManyOperands(size, 1);
+    }
+    display(params);
+    std::cout << std::endl;
+    return std::make_shared<NilValue>();
+}
+
+ValuePtr error(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size == 0) {
+        throw LispError("LispError");
+    }
+    else if (size == 1) {
+        throw LispError(params[0]->toString());
+    }
+    else {
+        throw LispError::tooManyOperands(size, 1);
+    }
+}
+
+ValuePtr exitt(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    int code = 0;
+    if (size == 1) {
+        if (!params[0]->isNumber()) {
+            throw LispError("LispError: exit requires a number");
+        }
+        code = static_cast<int>(params[0]->asNumber());
+    }
+    if (size > 1) {
+        throw LispError::tooManyOperands(size, 1);
+    }
+    std::exit(code);
+    return std::make_shared<NilValue>();
+}
+
 ValuePtr atom(const std::vector<ValuePtr>& params) {
     int size = params.size();
     if (size < 1) {
@@ -575,6 +626,176 @@ ValuePtr symbol(const std::vector<ValuePtr>& params) {
     return std::make_shared<BooleanValue>(false);
 }
 
+ValuePtr carr(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size < 1) {
+        throw LispError::tooFewOperands(size, 1);
+    }
+    if (size > 1) {
+        throw LispError::tooManyOperands(size, 1);
+    }
+    auto p = std::dynamic_pointer_cast<PairValue>(params[0]);
+    if (!p) {
+        throw LispError("LispError: car requires a pair");
+    }
+    return p->value1;
+}
+
+ValuePtr cdrr(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size < 1) {
+        throw LispError::tooFewOperands(size, 1);
+    }
+    if (size > 1) {
+        throw LispError::tooManyOperands(size, 1);
+    }
+    auto p = std::dynamic_pointer_cast<PairValue>(params[0]);
+    if (!p) {
+        throw LispError("LispError: cdr requires a pair");
+    }
+    return p->value2;
+}
+
+ValuePtr consp(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size < 2) {
+        throw LispError::tooFewOperands(size, 2);
+    }
+    if (size > 2) {
+        throw LispError::tooManyOperands(size, 2);
+    }
+    return std::make_shared<PairValue>(params[0], params[1]);
+}
+
+ValuePtr length(const std::vector<ValuePtr>& params) {
+    int size = params.size();
+    if (size < 1) {
+        throw LispError::tooFewOperands(size, 1);
+    }
+    if (size > 1) {
+        throw LispError::tooManyOperands(size, 1);
+    }
+    ValuePtr val = params[0];
+    int len = 0;
+    ValuePtr cur = val;
+    while (auto p = std::dynamic_pointer_cast<PairValue>(cur)) {
+        ++len;
+        cur = p->value2;
+    }
+    if (typeid(*cur) != typeid(NilValue)) {
+        throw LispError("LispError: length requires a proper list");
+    }
+    return std::make_shared<NumericValue>(len);
+}
+
+ValuePtr listt(const std::vector<ValuePtr>& params) {
+    ValuePtr result = std::make_shared<NilValue>();
+    for (int i = params.size() - 1; i >= 0; --i) {
+        result = std::make_shared<PairValue>(params[i], result);
+    }
+    return result;
+}
+
+ValuePtr append(const std::vector<ValuePtr>& params) {
+    std::vector<ValuePtr> allElems;
+    for (auto& lst : params) {
+        ValuePtr cur = lst;
+        while (auto p = std::dynamic_pointer_cast<PairValue>(cur)) {
+            allElems.push_back(p->value1);
+            cur = p->value2;
+        }
+        if (typeid(*cur) != typeid(NilValue)) {
+            throw LispError("LispError: append requires proper lists");
+        }
+    }
+    ValuePtr result = std::make_shared<NilValue>();
+    for (int i = allElems.size() - 1; i >= 0; --i) {
+        result = std::make_shared<PairValue>(allElems[i], result);
+    }
+    return result;
+}
+
+ValuePtr map(const std::vector<ValuePtr>& params) {
+    if (params.size() < 2) {
+        throw LispError::tooFewOperands(params.size(), 2);
+    }
+    if (params.size() > 2) {
+        throw LispError::tooManyOperands(params.size(), 2);
+    }
+    ValuePtr proc = params[0];
+    ValuePtr lst = params[1];
+    std::vector<ValuePtr> results;
+    ValuePtr cur = lst;
+    while (auto p = std::dynamic_pointer_cast<PairValue>(cur)) {
+        results.push_back(proc->Activatefunc({ p->value1 }));
+        cur = p->value2;
+    }
+    if (typeid(*cur) != typeid(NilValue)) {
+        throw LispError("LispError: map requires a proper list");
+    }
+    ValuePtr result = std::make_shared<NilValue>();
+    for (int i = results.size() - 1; i >= 0; --i) {
+        result = std::make_shared<PairValue>(results[i], result);
+    }
+    return result;
+}
+
+ValuePtr filter(const std::vector<ValuePtr>& params) {
+    if (params.size() < 2) {
+        throw LispError::tooFewOperands(params.size(), 2);
+    }
+    if (params.size() > 2) {
+        throw LispError::tooManyOperands(params.size(), 2);
+    }
+    ValuePtr proc = params[0];
+    ValuePtr lst = params[1];
+    std::vector<ValuePtr> kept;
+    ValuePtr cur = lst;
+    while (auto p = std::dynamic_pointer_cast<PairValue>(cur)) {
+        ValuePtr test = proc->Activatefunc({ p->value1 });
+        if (test->asBool() != false) {
+            kept.push_back(p->value1);
+        }
+        cur = p->value2;
+    }
+    if (typeid(*cur) != typeid(NilValue)) {
+        throw LispError("LispError: filter requires a proper list");
+    }
+    ValuePtr result = std::make_shared<NilValue>();
+    for (int i = kept.size() - 1; i >= 0; --i) {
+        result = std::make_shared<PairValue>(kept[i], result);
+    }
+    return result;
+}
+
+ValuePtr reduce(const std::vector<ValuePtr>& params) {
+    if (params.size() < 2) {
+        throw LispError::tooFewOperands(params.size(), 2);
+    }
+    if (params.size() > 2) {
+        throw LispError::tooManyOperands(params.size(), 2);
+    }
+    ValuePtr proc = params[0];
+    ValuePtr lst = params[1];
+    std::vector<ValuePtr> elems;
+    ValuePtr cur = lst;
+    while (auto p = std::dynamic_pointer_cast<PairValue>(cur)) {
+        elems.push_back(p->value1);
+        cur = p->value2;
+    }
+    if (typeid(*cur) != typeid(NilValue)) {
+        throw LispError("LispError: reduce requires a proper list");
+    }
+    if (elems.empty()) {
+        throw LispError("LispError: reduce requires a non-empty list");
+    }
+    ValuePtr accum = elems[0];
+    for (size_t i = 1; i < elems.size(); ++i) {
+        accum = proc->Activatefunc({ accum, elems[i] });
+    }
+    return accum;
+}
+
 const std::unordered_map<std::string, ValuePtr> Builtins::registry = {
     {"+", std::make_shared<BuiltinProcValue>(&add)},
     {"-", std::make_shared<BuiltinProcValue>(&minus)},
@@ -598,6 +819,10 @@ const std::unordered_map<std::string, ValuePtr> Builtins::registry = {
     {"zero?", std::make_shared<BuiltinProcValue>(&zero)},
     {"print", std::make_shared<BuiltinProcValue>(&print)},
     {"display", std::make_shared<BuiltinProcValue>(&display)},
+    {"newline", std::make_shared<BuiltinProcValue>(&newline)},
+    {"displayln", std::make_shared<BuiltinProcValue>(&displayln)},
+    {"error", std::make_shared<BuiltinProcValue>(&error)},
+    {"exit", std::make_shared<BuiltinProcValue>(&exitt)},
     {"atom?", std::make_shared<BuiltinProcValue>(&atom)},
     {"boolean?", std::make_shared<BuiltinProcValue>(&booleann)},
     {"integer?", std::make_shared<BuiltinProcValue>(&integer)},
@@ -607,7 +832,16 @@ const std::unordered_map<std::string, ValuePtr> Builtins::registry = {
     {"pair?", std::make_shared<BuiltinProcValue>(&pair)},
     {"procedure?", std::make_shared<BuiltinProcValue>(&procedure)},
     {"string?", std::make_shared<BuiltinProcValue>(&string)},
-    {"symbol?", std::make_shared<BuiltinProcValue>(&symbol)}
+    {"symbol?", std::make_shared<BuiltinProcValue>(&symbol)},
+    {"car", std::make_shared<BuiltinProcValue>(&carr) },
+    {"cdr", std::make_shared<BuiltinProcValue>(&cdrr)},
+    {"cons", std::make_shared<BuiltinProcValue>(&consp)},
+    {"length", std::make_shared<BuiltinProcValue>(&length)},
+    {"list", std::make_shared<BuiltinProcValue>(&listt)},
+    {"append", std::make_shared<BuiltinProcValue>(&append)},
+    {"map", std::make_shared<BuiltinProcValue>(&map)},
+    {"filter", std::make_shared<BuiltinProcValue>(&filter)},
+    {"reduce", std::make_shared<BuiltinProcValue>(&reduce)}
 };
 
 BuiltinFuncType Builtins::makeEval(std::shared_ptr<EvalEnv> env) {
@@ -635,7 +869,7 @@ BuiltinFuncType Builtins::makeApply(std::shared_ptr<EvalEnv> env) {
         if (typeid(*params[1]) != typeid(PairValue) && typeid(*params[1]) != typeid(NilValue)) {
             throw LispError("LispError: Malformed list: expected pair or nil, got " + params[1]->toString());
         }
-        ValuePtr proc = env->eval(params[0]);
+        ValuePtr proc = params[0];
         std::vector<ValuePtr> listArgs = params[1]->toVector();
         return env->apply(proc, listArgs);
         };
