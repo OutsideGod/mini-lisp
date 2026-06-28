@@ -65,12 +65,19 @@ std::string StringValue::toString() {
     ss << std::quoted(value);
     return ss.str();
 }
+
+std::string StringValue::asString() {
+    return value;
+}
+
 std::string NilValue::toString() {
     return "()";
 }
+
 std::string SymbolValue::toString() {
     return value;
 }
+
 std::string PairValue::toString() {
     std::string result = "(";
     result += value1->toString();

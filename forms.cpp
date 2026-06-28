@@ -127,6 +127,49 @@ ValuePtr orForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     return std::make_shared<BooleanValue>(false);
 }
 
+ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    int size = args.size();
+    ValuePtr result = std::make_shared<NilValue>();
+    if (size == 0) {
+        return result;
+    }
+    for (auto element : args) {
+        if (auto cast = std::dynamic_pointer_cast<PairValue>(element)) {
+            auto head = cast->value1;
+            auto body = cast->getCdr();
+            if (typeid(body) == typeid(NilValue)) {
+                result = env.eval(head);
+                if (result->asBool() == true) {
+                    if (result->asSymbol()) {
+
+                    }
+                    return result;
+                }
+            }
+            else {
+                std::vector<ValuePtr> body_vector = body->toVector();
+                if (env.eval(head)->asBool() == true) {
+                    for (auto sub_element : body_vector) {
+                        result = env.eval(sub_element);
+                    }
+                    return result;
+                }
+            }
+        }
+        else {
+            throw LispError::unexpectedElement("pair", "cond clause", element);
+        }
+    }
+}
+
+ValuePtr beginForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    ValuePtr result = std::make_shared<NilValue>();
+    for (auto element : args) {
+        result = env.eval(element);
+    }
+    return result;
+}
+
 
 namespace Forms {
     const std::unordered_map<std::string, SpecialFormType> SPECIAL_FORMS{

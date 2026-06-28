@@ -48,6 +48,7 @@ public:
     std::string value;
     StringValue(std::string value);
     std::string toString();
+    std::string asString();
 };
 class NilValue : public Value {
 public:
